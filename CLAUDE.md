@@ -16,7 +16,8 @@ sup-hackathon/
 │   └── test_resume_2.pdf       ← test subject 2
 ├── scripts/
 │   ├── test-exa.mjs            ← dev tool: test Pipeline 1 only (Exa + extraction + aggregation)
-│   └── test-gap.mjs            ← dev tool: test Pipeline 1 + 2 (adds LLM gap analysis)
+│   ├── test-gap.mjs            ← dev tool: test Pipeline 1 + 2 (adds LLM gap analysis)
+│   └── test-roadmap.mjs        ← dev tool: test Pipeline 1 + 2 + 3 (full pipeline with roadmap)
 ├── .env.local                  ← EXA_API_KEY, OPENAI_API_KEY (never committed)
 └── .gitignore
 ```
@@ -36,15 +37,16 @@ sup-hackathon/
 - Resume ingested via `pdf-parse` — user uploads PDF, text extracted server-side
 - Prompt instructs model to cite exact metrics, technique names, and numbers from resume (not generic descriptions)
 
-**Pipeline 3 — Roadmap (NOT YET BUILT)**
+**Pipeline 3 — Roadmap (DONE, tested)**
 - Model: `gpt-4o` | `temperature: 0` | `max_tokens: 3000`
 - Input: role + resume text + gap table (partial/missing only, sorted by frequency desc) + `data/projects.json` as flat text
-- Output: one card per partial/missing skill, four sections each:
-  - CLOSE THE GAP: for partial — acknowledge existing evidence, state specific extension to add. For missing — suggest one specific project at the depth contexts describe. Reference projects.json where genuinely relevant.
-  - LEARN IT: one free resource, named explicitly with specific link or course name. Never "search YouTube", never paid.
-  - WHY THIS IS YOUR FASTEST PATH: one sentence connecting gap to something already in their profile.
-  - YOUR POTENTIAL RESUME BULLET: "Here's what your CV line could look like once you've done this" — past-tense, names the specific project, contains a concrete outcome or metric, no placeholders. Reads as a real CV line.
+- Output: JSON array of cards, one per partial/missing skill, each with: `skill`, `frequency`, `match`, `closeTheGap`, `learnIt`, `whyFastestPath`, `resumeBullet`
+  - closeTheGap: for partial — acknowledge existing evidence, state specific extension to add. For missing — suggest one specific project at the depth contexts describe. Reference projects.json where genuinely relevant.
+  - learnIt: one free resource, named explicitly with specific link or course name. Never "search YouTube", never paid.
+  - whyFastestPath: one sentence connecting gap to something already in their profile.
+  - resumeBullet: past-tense, names the specific project, contains a concrete outcome or metric, no placeholders. Reads as a real CV line.
 - Strict constraints: never suggest building something already in profile (cross-check evidence fields), resume bullet must feel earned with plausible specific outcome, no timelines or weekly schedules, output only cards with no preamble
+- JSON parse error handling: strip markdown fences, try-catch with raw output logging, fallback to empty array
 - Rationale for gpt-4o: roadmap is the most visible output to judges — model must cross-reference resume evidence, market contexts, and projects.json together to produce genuinely personalised guidance. gpt-4o-mini is not consistent enough for this level of reasoning.
 
 ### Key Implementation Decisions

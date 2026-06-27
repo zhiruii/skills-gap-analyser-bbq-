@@ -356,15 +356,30 @@ STRICT RULES:
   }));
 
   // ── Step 5: Roadmap (Prompt 3) ────────────────────────────────────────────
-  let roadmap = '';
-  const gaps = gapTableWithReceipts.filter(r => r.match === 'partial' || r.match === 'missing');
+  let roadmap: {
+    skill: string;
+    frequency: string;
+    match: 'partial' | 'missing';
+    closeTheGap: string;
+    learnIt: string;
+    whyFastestPath: string;
+    resumeBullet: string;
+  }[] = [];
+
+  const gaps = gapTableWithReceipts
+    .filter(r => r.match === 'partial' || r.match === 'missing')
+    .sort((a, b) => {
+      const freqA = parseInt(a.frequency) || 0;
+      const freqB = parseInt(b.frequency) || 0;
+      return freqB - freqA;
+    });
 
   if (gaps.length > 0) {
     try {
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         temperature: 0,
-        max_tokens: 2500,
+        max_tokens: 3000,
         messages: [{
           role: 'user',
           content: `You are a career coach building a personalised action plan for a CS student. Every recommendation must be grounded in their specific existing projects, experiences, and skills. Never give generic advice that ignores what they already have. Never suggest building something they have already built.
@@ -378,40 +393,61 @@ ${profile}
 SKILL GAP ANALYSIS (from ${n} live job postings):
 ${JSON.stringify(gaps.map(({ skill, frequency, match, note, evidence }) => ({ skill, frequency, match, note, evidence })), null, 2)}
 
+Each entry contains:
+- skill: the technology or tool
+- frequency: how often it appears across postings
+- match: partial or missing
+- note: for partial matches, exactly what depth they lack and what the market expects
+- evidence: for partial matches, what they already have
+
+Read every note and evidence field before writing anything. Your roadmap must reflect what this specific person has, not a generic CS student.
+
 CURATED PROJECT IDEAS FOR REFERENCE:
 ${projectsText}
 Use these where genuinely relevant with their specific link. If nothing fits naturally, draw from your own knowledge. Do not force a reference.
 
 YOUR TASK:
-For each skill where match is "partial" or "missing", produce exactly this format:
+For each skill where match is "partial" or "missing", return a JSON object with these fields.
 
-[SKILL NAME] — [X/10] postings — [partial/missing]
+Return only a JSON array, no explanation, no markdown, no backticks.
 
-Close the gap:
-One sentence. For partial: acknowledge what they already have, then say specifically what to add. For missing: suggest one specific project to build.
-
-Learn it:
-One free resource, named explicitly.
-
-Why this is your fastest path:
-One sentence connecting this gap to something already in their profile.
-
-Resume bullet (copy once done):
-One achievement-framed past-tense sentence ready to paste into CV.
-
----
+[
+  {
+    "skill": "Tableau",
+    "frequency": "6/10",
+    "match": "partial",
+    "closeTheGap": "Your Spotify Analysis Project already demonstrates strong data visualisation logic in matplotlib — rebuild that dashboard in Tableau Public, connecting to your existing cleaned dataset, to demonstrate the specific tool the market requires.",
+    "learnIt": "Tableau Public free training — 'Getting Started' path on Tableau's official site (free, ~3 hours)",
+    "whyFastestPath": "You already think in visualisation layers from your matplotlib work — this is a tool switch, not a concept switch, so you can focus on Tableau syntax rather than learning data viz from scratch.",
+    "resumeBullet": "Rebuilt Spotify listening analysis dashboard in Tableau, visualising 12 months of streaming data across artist, genre, and time-of-day dimensions for stakeholder presentation."
+  }
+]
 
 STRICT RULES:
 - Only generate entries for partial and missing skills
 - Read evidence and note fields before writing each entry
-- Never suggest building something already in their profile
-- Never recommend paid resources
-- Resume bullet must be past tense, name the specific project, no placeholder text
-- Output only the roadmap entries, no preamble, no summary`,
+- For partial: always acknowledge existing evidence in closeTheGap before stating what is still needed. Reference the specific project or experience from the evidence field.
+- For missing: suggest one specific project to build at the depth level the aggregated contexts imply, not beginner level if the market expects intermediate or advanced usage
+- Never suggest building something already in their profile — cross-check the evidence fields across ALL skills before writing each closeTheGap
+- closeTheGap must be one specific, actionable sentence. Name the specific project or extension.
+- learnIt: one free resource, named explicitly with specific course or resource name. Never "search YouTube for tutorials." Never recommend paid resources when free ones exist.
+- whyFastestPath: one sentence connecting this gap to something already in their profile. For partial matches, reference what they already have from the evidence field and explain why that makes closing this gap faster than starting from scratch.
+- resumeBullet: past tense, achievement-framed, names the specific project from closeTheGap, contains a concrete outcome or metric, no placeholders. Must read as a real CV line, not a template. Should feel earned with a plausible specific outcome.
+- If curated project ideas have a directly relevant project, cite it with its specific link in closeTheGap
+- Never suggest timelines, phases, or weekly schedules
+- Return only the JSON array, nothing else`,
         }],
       });
 
-      roadmap = completion.choices[0]?.message?.content ?? '';
+      const raw = (completion.choices[0]?.message?.content ?? '').replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+      console.log('Prompt 3 raw output:', raw);
+      try {
+        const parsed = JSON.parse(raw);
+        roadmap = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        console.error('Prompt 3 parse error\nRaw:', raw);
+        roadmap = [];
+      }
     } catch (err) {
       console.error('Prompt 3 API error:', err);
     }
