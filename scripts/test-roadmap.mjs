@@ -22,7 +22,28 @@ console.log(`\n[0] Resume extracted (${PROFILE.length} chars)\n`);
 
 const projectsRaw = readFileSync(resolve(process.cwd(), 'data/projects.json'), 'utf8');
 const projects = JSON.parse(projectsRaw);
-const projectsText = projects.map(p => `[${p.section}] ${p.name} — ${p.link}`).join('\n');
+
+const SECTION_MAP = {
+  'python': ['Python'],
+  'machine learning': ['Python'],
+  'deep learning': ['Python'],
+  'nlp': ['Python'],
+  'javascript': ['JavaScript', 'HTML and CSS'],
+  'typescript': ['JavaScript'],
+  'react': ['JavaScript'],
+  'node.js': ['JavaScript'],
+  'html/css': ['HTML and CSS', 'JavaScript'],
+  'java': ['Java', 'Kotlin'],
+  'kotlin': ['Kotlin'],
+  'go': ['Go'],
+  'rust': ['Rust'],
+  'swift': ['Swift'],
+  'c++': ['C/C++'],
+  'r': ['R'],
+  'scala': ['Scala'],
+  'ruby': ['Ruby'],
+  'php': ['PHP'],
+};
 
 const SYNONYMS = {
   'microsoft sql server': 'sql', 'postgresql': 'sql', 'mysql': 'sql', 'ms sql': 'sql',
@@ -294,9 +315,21 @@ Each entry contains:
 
 Read every note and evidence field before writing anything. Your roadmap must reflect what this specific person has, not a generic CS student.
 
-CURATED PROJECT IDEAS FOR REFERENCE:
-${projectsText}
-Use these where genuinely relevant with their specific link. If nothing fits naturally, draw from your own knowledge. Do not force a reference.
+CURATED PROJECT IDEAS FOR REFERENCE (filtered to skills relevant to these gaps):
+${(() => {
+  const gapKeys = gaps.map(g => g.skill.toLowerCase());
+  const relevantSections = new Set();
+  for (const key of gapKeys) {
+    for (const [mapKey, sections] of Object.entries(SECTION_MAP)) {
+      if (key.includes(mapKey) || mapKey.includes(key)) sections.forEach(s => relevantSections.add(s));
+    }
+  }
+  const filtered = relevantSections.size > 0
+    ? projects.filter(p => relevantSections.has(p.section))
+    : projects.slice(0, 50);
+  return filtered.map(p => `[${p.section}] ${p.name} — ${p.link}`).join('\n');
+})()}
+These are real project tutorials with working links. Cite them with their specific link where genuinely relevant. If nothing fits naturally for a given gap, draw from your own knowledge — do not force a reference.
 
 YOUR TASK:
 For each skill where match is "partial" or "missing", return a JSON object with these fields.
