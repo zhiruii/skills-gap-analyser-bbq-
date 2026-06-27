@@ -3,6 +3,7 @@ import Exa from 'exa-js';
 import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
+import pdfParse from 'pdf-parse';
 
 const exa = new Exa(process.env.EXA_API_KEY!);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
@@ -101,19 +102,36 @@ export async function POST(req: NextRequest) {
     rateLimit.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
   }
 
-  // Parse and validate input
-  let body: { role?: unknown; profile?: unknown };
+  // Parse multipart form data
+  let formData: FormData;
   try {
-    body = await req.json();
+    formData = await req.formData();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid form data' }, { status: 400 });
   }
 
-  const role = String(body.role ?? '').trim().slice(0, MAX_ROLE_LEN);
-  const profile = String(body.profile ?? '').trim().slice(0, MAX_PROFILE_LEN);
+  const role = String(formData.get('role') ?? '').trim().slice(0, MAX_ROLE_LEN);
+  const resumeFile = formData.get('resume');
 
-  if (!role || !profile) {
-    return NextResponse.json({ error: 'role and profile are required' }, { status: 400 });
+  if (!role) {
+    return NextResponse.json({ error: 'role is required' }, { status: 400 });
+  }
+  if (!resumeFile || !(resumeFile instanceof Blob)) {
+    return NextResponse.json({ error: 'resume file is required' }, { status: 400 });
+  }
+
+  // Extract text from PDF
+  let profile: string;
+  try {
+    const buffer = Buffer.from(await resumeFile.arrayBuffer());
+    const parsed = await pdfParse(buffer);
+    profile = parsed.text.trim().slice(0, MAX_PROFILE_LEN);
+  } catch {
+    return NextResponse.json({ error: 'Failed to parse resume PDF' }, { status: 400 });
+  }
+
+  if (!profile) {
+    return NextResponse.json({ error: 'Could not extract text from resume' }, { status: 400 });
   }
 
   // ── Step 1: Fetch 10 live job postings via Exa ──────────────────────────
@@ -152,7 +170,7 @@ export async function POST(req: NextRequest) {
     postings.map(async (posting): Promise<ExtractionResult> => {
       const company = posting.title ?? posting.url;
       const url = posting.url;
-      const text = posting.text ?? '';
+      const text = (posting as typeof posting & { text?: string }).text ?? '';
 
       try {
         const completion = await openai.chat.completions.create({
@@ -259,9 +277,9 @@ ${text}`,
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       temperature: 0,
-      max_tokens: 1500,
+      max_tokens: 2000,
       messages: [{
         role: 'user',
         content: `You are a precise technical recruiter assessing how well a candidate's profile matches what the market expects for their target role. Your assessment must be grounded strictly in evidence from their profile. Never infer, assume, or give benefit of the doubt.
@@ -272,11 +290,11 @@ ${role}
 USER'S CURRENT PROFILE:
 ${profile}
 
-Read the profile carefully before assessing anything:
-- For each project: infer only skills clearly and directly demonstrated by what is described
-- For each certification or course: credit only skills that qualification explicitly covers
-- For each job or internship: credit only skills explicitly mentioned in that experience
-- Vague descriptions do not count as evidence
+Read the profile carefully before assessing anything. Check ALL of these sections:
+1. Projects — infer only skills clearly and directly demonstrated by what is described
+2. Technical Skills section — ANY skill explicitly listed here counts as at minimum "partial", even without a project. The candidate claims it but has not demonstrated the full depth the market expects. Do NOT mark a skill as "missing" if it appears in the Technical Skills section.
+3. Experience / internships — credit only skills explicitly mentioned
+- Vague descriptions do not count as evidence for "full" — but a bare listing in Technical Skills is enough for "partial"
 
 MARKET SKILL REQUIREMENTS (aggregated from ${n} live job postings):
 ${JSON.stringify(aggregatedSkills.map(s => ({
@@ -310,13 +328,13 @@ Return this exact JSON structure:
 STRICT RULES:
 - Every skill from market requirements must appear in output
 - Base every judgment strictly on profile evidence provided
-- evidence field: required for full and partial, null for missing — must name the specific project or experience
-- note field: required for partial only, null for full and missing — reference specific contexts to explain what depth the user lacks
+- evidence field: required for full and partial, null for missing — write 1-2 sentences grounded in the exact words, numbers, and techniques from the resume. Quote specific metrics (e.g. "87.5% validation accuracy", "0.65 mAP"), specific method names (e.g. "fine-tuned MobileNetV2 via transfer learning"), and specific outcomes. Do not paraphrase generically — if the resume says "15% relative mAP improvement", say that. For full: explain exactly what in the resume meets the market expectation at the required depth. For partial: explain what specific evidence exists and precisely what depth is still missing compared to what the contexts require.
+- note field: null for all — use evidence to carry all reasoning
 - Return only the JSON array, nothing else`,
       }],
     });
 
-    const raw = completion.choices[0]?.message?.content ?? '';
+    const raw = (completion.choices[0]?.message?.content ?? '').replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
     try {
       const parsed = JSON.parse(raw);
       gapTable = Array.isArray(parsed) ? parsed : [];

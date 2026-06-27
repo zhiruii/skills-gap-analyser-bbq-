@@ -8,7 +8,7 @@ config({ path: resolve(process.cwd(), '.env.local') });
 const exa = new Exa(process.env.EXA_API_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const ROLE = 'software engineer intern Singapore';
+const ROLE = 'data science intern Singapore';
 
 const SYNONYMS = {
   'microsoft sql server': 'sql', 'postgresql': 'sql', 'mysql': 'sql',

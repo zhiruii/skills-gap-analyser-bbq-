@@ -41,5 +41,4 @@ yarn-error.log*
 next-env.d.ts
 
 # project
-CLAUDE.md
 data/fallback.json
