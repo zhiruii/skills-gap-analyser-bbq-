@@ -42,3 +42,5 @@ next-env.d.ts
 
 # project
 data/fallback.json
+CLAUDE.md
+data/*.pdf
