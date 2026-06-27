@@ -13,7 +13,8 @@ sup-hackathon/
 ├── data/
 │   ├── projects.json           ← scraped from practical-tutorials/project-based-learning README
 │   ├── test_resume.pdf         ← Li Zhirui's resume (test subject 1)
-│   └── test_resume_2.pdf       ← test subject 2
+│   ├── test_resume_2.pdf       ← test subject 2
+│   └── test_resume_3.pdf       ← test subject 3
 ├── scripts/
 │   ├── test-exa.mjs            ← dev tool: test Pipeline 1 only (Exa + extraction + aggregation)
 │   ├── test-gap.mjs            ← dev tool: test Pipeline 1 + 2 (adds LLM gap analysis)
@@ -55,6 +56,7 @@ sup-hackathon/
 - 60-day Exa date filter — 30 days too thin for niche roles, 60 days balances recency vs volume
 - `includeDomains` whitelist on Exa — prevents personal portfolios/resumes being returned as job postings
 - PDF resume upload via `multipart/form-data` — better UX than text paste
+- `serverExternalPackages: ['pdf-parse']` in `next.config.ts` — required to prevent pdf-parse from trying to load a test PDF on module init when bundled by Next.js
 - Streaming (SSE) to be added to route for loading state — not yet implemented
 - Test scripts in `scripts/` are dev-only, not part of production build
 

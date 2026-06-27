@@ -15,7 +15,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const ROLE = 'software engineer intern Singapore';
 
-const pdfBuffer = readFileSync(resolve(process.cwd(), 'data/test_resume_2.pdf'));
+const pdfBuffer = readFileSync(resolve(process.cwd(), 'data/test_resume_3.pdf'));
 const pdfData = await pdfParse(pdfBuffer);
 const PROFILE = pdfData.text.trim();
 console.log(`\n[0] Resume extracted (${PROFILE.length} chars)\n`);
@@ -201,7 +201,7 @@ Return ONLY this exact JSON structure, nothing else:
 
 STRICT RULES:
 - Every skill from market requirements must appear in output
-- evidence field: required for full and partial, null for missing — write 1-2 sentences grounded in the exact words, numbers, and techniques from the resume. Quote specific metrics, method names, and outcomes. Do not paraphrase generically.
+- evidence field: required for full and partial, null for missing — write 1-2 sentences grounded in the exact words, numbers, and techniques from the resume. Quote specific metrics (e.g. "87.5% validation accuracy", "0.65 mAP"), specific method names (e.g. "fine-tuned MobileNetV2 via transfer learning"), and specific outcomes. Do not paraphrase generically — if the resume says "15% relative mAP improvement", say that. For full: explain exactly what in the resume meets the market expectation at the required depth. For partial: explain what specific evidence exists and precisely what depth is still missing compared to what the contexts require.
 - note field: null for all — use evidence to carry all reasoning
 - Return only the JSON array, nothing else` }],
 });
@@ -223,6 +223,7 @@ const gapWithReceipts = gapTable.map(row => ({
 
 // ── Display gap table ───────────────────────────────────────────────────────
 const ICONS = { full: '✓ Full', partial: '◐ Partial', missing: '● Missing' };
+const COLOURS = { full: 'GREEN', partial: 'AMBER', missing: 'RED' };
 
 console.log('\n' + '═'.repeat(70));
 console.log(`SKILLS GAP TABLE — "${ROLE}"`);
@@ -231,7 +232,31 @@ console.log(`${'SKILL'.padEnd(22)} ${'FREQ'.padEnd(8)} MATCH`);
 console.log('─'.repeat(70));
 
 gapWithReceipts.forEach(row => {
-  console.log(`${row.skill.padEnd(22)} ${row.frequency.padEnd(8)} ${ICONS[row.match]}`);
+  console.log(`${row.skill.padEnd(22)} ${row.frequency.padEnd(8)} [${COLOURS[row.match]}] ${ICONS[row.match]}`);
+});
+
+console.log('\n' + '─'.repeat(70));
+console.log('EXPANDED VIEW:\n');
+
+gapWithReceipts.forEach(row => {
+  console.log(`\n▸ ${row.skill.toUpperCase()} — ${row.frequency} — ${ICONS[row.match]}`);
+
+  if (row.receipts?.length > 0) {
+    console.log('\n  MARKET RECEIPTS:');
+    row.receipts.forEach(r => {
+      const co = r.company.split('|')[0].split('—')[0].trim();
+      console.log(`  • ${co}`);
+      console.log(`    "${r.quote}"`);
+      console.log(`    → ${r.url}`);
+    });
+  }
+
+  if (row.evidence) {
+    console.log(`\n  ASSESSMENT: ${row.evidence}`);
+  }
+  if (row.match === 'missing') {
+    console.log(`\n  ASSESSMENT: No evidence of this skill anywhere in the profile.`);
+  }
 });
 
 // ── Pipeline 3: Roadmap ─────────────────────────────────────────────────────

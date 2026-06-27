@@ -440,7 +440,6 @@ STRICT RULES:
       });
 
       const raw = (completion.choices[0]?.message?.content ?? '').replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-      console.log('Prompt 3 raw output:', raw);
       try {
         const parsed = JSON.parse(raw);
         roadmap = Array.isArray(parsed) ? parsed : [];
