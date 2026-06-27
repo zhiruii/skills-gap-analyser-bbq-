@@ -12,7 +12,7 @@ Built at 'Sup Build2026 — 12-hour hackathon, Future of Work track.
 
 You don't know what you lack for your target role, and the advice you get is too vague to act on. Most tools scan one job posting for keyword matches. We analyse ten at once, and we go deeper than keywords.
 
-The output isn't "learn SQL." It's: _"SQL appears in 9 of 10 postings expecting CTEs and window functions — your data project shows basic queries, so extend it with an analytical layer to close this gap specifically."_
+The output isn't "learn SQL." It's: _"Extend your X project by implementing a neural network model using TensorFlow to improve the F1 score beyond 79%"_
 
 ---
 
@@ -26,6 +26,11 @@ Every claim in our output comes with a real company name, a real verbatim quote,
 
 **Depth over keywords.**
 We extract not just what skills are required, but what each role expects you to *do* with them. Then we judge your resume not on keyword presence, but on whether you've demonstrated the depth the market actually expects.
+
+**Personalisation**
+Your gap analysis references your actual projects by name . Your roadmap is built on what you already have.
+
+Recommendations are grounded in a curated dataset of 400+ real project tutorials scraped from a public GitHub repository (https://github.com/practical-tutorials/project-based-learning), filtered to your specific gaps. So instead of "learn Python," you get a specific project to build, aspecific a specific free resource, and a resume bullet you can copy the moment you're done.
 
 ---
 
