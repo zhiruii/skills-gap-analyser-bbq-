@@ -20,7 +20,11 @@
 }
 
 body {
-  background: var(--background);
+  background-image: url('/backgroundImage.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
