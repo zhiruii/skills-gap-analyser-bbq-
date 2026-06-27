@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
       type: 'neural',
       startPublishedDate: startDate,
       includeDomains: [
-        'linkedin.com', 'jobstreet.com', 'indeed.com', 'glassdoor.com',
+        'jobs.linkedin.com', 'jobstreet.com', 'indeed.com', 'glassdoor.com',
         'mycareersfuture.gov.sg', 'internsg.com', 'jobs.lever.co',
         'builtin.com', 'careers.google.com', 'sg.prosple.com',
         'efinancialcareers.ie', 'jobsdb.com', 'sgcareersfuture.com',
